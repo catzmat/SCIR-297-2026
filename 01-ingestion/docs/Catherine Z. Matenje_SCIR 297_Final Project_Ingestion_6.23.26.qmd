@@ -1,0 +1,61 @@
+---
+title: "SCIR 297_Food Access_Final Project"
+author: "Catherine Z. Matenje"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This project uses data from the USDA Food Access Research Atlas (2019) to examine food access across U.S. census tracts. The dataset provides information on food access, socioeconomic conditions, and transportation characteristics for U.S. census tracts. It includes measures of low food access, poverty, income, vehicle availability, and SNAP participation, which can be used to examine factors associated with food access across communities. For this project, variables related to food access and community vulnerability were selected for analysis.
+
+My original research interest focused on disaster food insecurity, specifically how disasters affect household food security before, during, and after disaster events. Because the disaster-specific dataset was not available in time for this project, this analysis looks at food access instead as a related measure of community vulnerability to disasters. Communities with existing barriers to food access may face greater challenges during emergencies or disasters when transportation, food supply chains, and local infrastructure are disrupted.
+
+For this exploratory data analysis, I am considering two possible research questions.
+
+Research Question 1: What socioeconomic and transportation factors are associated with low food access in U.S. census tracts?
+
+| Variable | Description | Outcome/predictor |
+|-----------|-----------|-----------|
+| LILATracts_1And10 | Indicates whether a census tract is classified as both low-income and low-access (food desert indicator). | Outcome Variable |
+| PovertyRate | Percentage of the population living below the federal poverty line within the census tract. | Predictor Variable |
+| MedianFamilyIncome | Median family income within the census tract, representing the midpoint of the income distribution. | Predictor Variable |
+| Urban | Indicates whether the census tract is classified as urban (1) or rural (0). | Predictor Variable |
+| HUNVFlag | Indicates low vehicle access, identifying tracts where many households do not have access to a vehicle and may face transportation barriers to reaching supermarkets. | Predictor Variable |
+| lasnap1share | Share of housing units receiving SNAP benefits that are located more than one mile from a supermarket. | Predictor Variable |
+
+Research Question 2: Which community characteristics may increase vulnerability to food access disruptions during emergencies and disasters?
+
+| Variable | Description | Outcome/Predictor|
+|-----------|-----------|-----------|
+| lapop1share | Proportion of the population living more than one mile from a supermarket. This serves as a continuous measure of low food access. | Outcome Variable |
+| PovertyRate | Percentage of the population living below the federal poverty line within the census tract. | Predictor Variable |
+| MedianFamilyIncome | Median family income within the census tract, representing the midpoint of the income distribution. | Predictor Variable |
+| Urban | Indicates whether the census tract is classified as urban (1) or rural (0). | Predictor Variable |
+| HUNVFlag | Indicates low vehicle access, identifying tracts where many households do not have access to a vehicle and may face transportation barriers to reaching supermarkets. | Predictor Variable |
+
+
+## Load Libraries
+
+```{r}
+
+# Load required libraries for data wrangling, visualization, and exploratory analysis
+
+library(tidyverse)
+library(RColorBrewer)
+library(corrplot)
+
+setwd("C:/Users/cathe/OneDrive/Desktop/Montgomery College Transition/2025-2026 MONTGOMERY COLLEGE TRANSITION/MC COURSES 25-26/Summer 2026/SCIR 297/Final Project")
+
+```
+
+## Load Data Set
+
+```{r}
+food_data <- read_csv("FoodAccessResearchAtlasData2019_clean.csv")
+
+head(food_data)
+dim(food_data)
+names(food_data)
+```
+
