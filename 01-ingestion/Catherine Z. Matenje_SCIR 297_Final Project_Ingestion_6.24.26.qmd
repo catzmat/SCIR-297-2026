@@ -1,0 +1,194 @@
+---
+title: "SCIR 297_Food Access_Ingestion Code_Final Project"
+author: "Catherine Z. Matenje"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This project uses data from the USDA Food Access Research Atlas (2019) to examine food access across U.S. census tracts. The dataset provides information on food access, socioeconomic conditions, and transportation characteristics for U.S. census tracts. It includes measures of low food access, poverty, income, vehicle availability, and SNAP participation, which can be used to examine factors associated with food access across communities. For this project, variables related to food access and community vulnerability were selected for analysis.
+
+My original research interest focused on disaster food insecurity, specifically how disasters affect household food security before, during, and after disaster events. Because the disaster-specific dataset was not available in time for this project, this analysis looks at food access instead as a related measure of community vulnerability to disasters. Communities with existing barriers to food access may face greater challenges during emergencies or disasters when transportation, food supply chains, and local infrastructure are disrupted.
+
+Research Question: Which community characteristics may increase vulnerability to food access disruptions during emergencies and disasters?
+
+### Variables for Research Question
+
+| Variable | Description | Outcome/Predictor |
+|------------------------|------------------------|------------------------|
+| low_access_share (lapop1share) | Proportion of the population living more than one mile from a supermarket. This serves as a continuous measure of low food access. | Outcome Variable |
+| poverty_rate (PovertyRate) | Percentage of the population living below the federal poverty line within the census tract. | Predictor Variable |
+| median_income (MedianFamilyIncome) | Median family income within the census tract, representing the midpoint of the income distribution. | Predictor Variable |
+| urban (Urban) | Indicates whether the census tract is classified as urban (1) or rural (0). | Predictor Variable |
+| low_vehicle_access (HUNVFlag) | Indicates low vehicle access, identifying tracts where many households do not have access to a vehicle and may face transportation barriers to reaching supermarkets. | Predictor Variable |
+| snap_low_access_share (lasnap1share) | Share of housing units receiving SNAP benefits that are located more than one mile from a supermarket. | Predictor Variable |
+| child_low_access_share (lakids1share) | Share of the tract population that consists of children (ages 0–17) living more than one mile from a supermarket. | Predictor Variable |
+| senior_low_access_share (laseniors1share) | Share of the tract population that consists of seniors (age 65 and older) living more than one mile from a supermarket. | Predictor Variable |
+| low_income_low_access_share (lalowi1share) | Share of the tract population that is both low income and living more than one mile from a supermarket. | Predictor Variable |
+
+## Purpose of this file:
+
+The purpose of this file is to ingest, inspect, and prepare the USDA Food Access Research Atlas dataset for analysis. The data preparation process includes loading the raw dataset, examining its structure and variables, renaming variables for readability, converting variables to appropriate data types, handling missing values, and creating a processed dataset for analysis. The final processed dataset is saved as a separate CSV file and will be used in the subsequent exploratory data analysis and modeling file.
+
+## Load Libraries
+
+```{r}
+
+# Load required libraries for data wrangling, visualization, and exploratory analysis
+
+library(tidyverse)
+library(RColorBrewer)
+library(corrplot)
+
+setwd("C:/Users/cathe/OneDrive/Desktop/Montgomery College Transition/2025-2026 MONTGOMERY COLLEGE TRANSITION/MC COURSES 25-26/Summer 2026/SCIR 297/Final Project")
+
+```
+
+## Load Data Set
+
+```{r}
+food_data <- read_csv("FoodAccessResearchAtlasData2019_clean.csv")
+
+head(food_data)
+dim(food_data)
+names(food_data)
+```
+
+## Exploring the Ingested Data
+
+```{r}
+# Examine structure of dataset
+
+glimpse(food_data)
+
+# View dimensions
+dim(food_data)
+
+# View summary statistics
+summary(food_data)
+
+# Check the number of missing values in each variable 
+colSums(is.na(food_data))
+```
+
+## Creating Cleaned Data Set, Renaming Variables, and Handling Missing Values
+
+```{r}
+# Rename variables to shorter, more descriptive names
+
+clean_data <- food_data |> 
+  # Rename variables
+  rename(
+    census_tract = CensusTract,
+    state = State,
+    county = County,
+    urban = Urban,
+    poverty_rate = PovertyRate,
+    median_income = MedianFamilyIncome,
+    low_vehicle_access = HUNVFlag,
+    food_desert = LILATracts_1And10,
+    low_access_share = lapop1share,
+    snap_low_access_share = lasnap1share,
+    snap_low_access_count = lasnap1,
+    low_vehicle_low_access_share = lahunv1share,
+    low_income_low_access_share = lalowi1share,
+    child_low_access_share = lakids1share,
+    senior_low_access_share = laseniors1share,
+    low_income_tract = LowIncomeTracts
+  ) |>
+  
+# Convert text values of "NULL" into missing values (NA)
+  mutate(
+    across(
+      c(
+        median_income,
+        low_access_share,
+        snap_low_access_share,
+        snap_low_access_count,
+        low_vehicle_low_access_share,
+        low_income_low_access_share,
+        child_low_access_share,
+        senior_low_access_share
+      ),
+      ~ na_if(.x, "NULL")
+    )
+  ) |>
+  
+   # Convert variables to appropriate formats
+  mutate(
+
+    # Convert identifier variables to character
+    census_tract = as.character(census_tract),
+    state = as.character(state),
+    county = as.character(county),
+
+    # Convert categorical variables to factors
+    urban = as.factor(urban),
+    low_vehicle_access = as.factor(low_vehicle_access),
+    food_desert = as.factor(food_desert),
+    low_income_tract = as.factor(low_income_tract),
+
+    # Convert continuous variables to numeric
+    poverty_rate = as.numeric(poverty_rate),
+    median_income = as.numeric(median_income),
+    low_access_share = as.numeric(low_access_share),
+    snap_low_access_share = as.numeric(snap_low_access_share),
+    snap_low_access_count = as.numeric(snap_low_access_count),
+    low_vehicle_low_access_share = as.numeric(low_vehicle_low_access_share),
+    low_income_low_access_share = as.numeric(low_income_low_access_share),
+    child_low_access_share = as.numeric(child_low_access_share),
+    senior_low_access_share = as.numeric(senior_low_access_share)
+  )
+
+
+```
+
+## Exploring Cleaned Data Set and Creating Processed Data Set
+
+```{r}
+
+glimpse(clean_data)
+summary(clean_data)
+colSums(is.na(clean_data)) # checking missing values after cleaning
+
+# Create a processed dataset by removing rows with missing values in the variables needed for the final research question and regression model
+
+processed_data <- clean_data |>
+  select(
+    census_tract,
+    state,
+    county,
+    urban,
+    poverty_rate,
+    median_income,
+    low_vehicle_access,
+    low_access_share,
+    snap_low_access_share,
+    child_low_access_share,
+    senior_low_access_share,
+    low_income_low_access_share
+  ) |>
+  drop_na()
+
+```
+ 
+## Explore Processed Data Set and Save
+
+```{r}
+
+dim(processed_data)
+glimpse(processed_data)
+summary(processed_data) 
+colSums(is.na(processed_data))
+
+## Save processed data set as new CSV file
+
+write.csv( 
+  processed_data, 
+  "FoodAccessResearchAtlasData2019_processed.csv", 
+  row.names = FALSE )
+
+```
+
+*The cleaned dataset was further processed by selecting only the variables relevant to the final research question and removing observations with missing values. The resulting processed dataset contains 52,047 census tracts and 12 variables. All remaining variables have complete observations, indicating that missing values were successfully addressed. This processed dataset will be used for all subsequent exploratory data analysis and regression modeling.*
