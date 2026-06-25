@@ -1,0 +1,445 @@
+---
+title: "SCIR 297_Food Access_EDA_Final Project"
+author: "Catherine Z. Matenje"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This project uses data from the USDA Food Access Research Atlas (2019) to examine food access across U.S. census tracts. The dataset provides information on food access, socioeconomic conditions, and transportation characteristics for U.S. census tracts. It includes measures of low food access, poverty, income, vehicle availability, and SNAP participation, which can be used to examine factors associated with food access across communities. For this project, variables related to food access and community vulnerability were selected for analysis.
+
+My original research interest focused on disaster food insecurity, specifically how disasters affect household food security before, during, and after disaster events. Because the disaster-specific dataset was not available in time for this project, this analysis looks at food access instead as a related measure of community vulnerability to disasters. Communities with existing barriers to food access may face greater challenges during emergencies or disasters when transportation, food supply chains, and local infrastructure are disrupted.
+
+Research Question: Which community characteristics may increase vulnerability to food access disruptions during emergencies and disasters?
+
+### Variables for Research Question
+
+| Variable | Description | Outcome/Predictor |
+|------------------------|------------------------|------------------------|
+| low_access_share (lapop1share) | Proportion of the population living more than one mile from a supermarket. This serves as a continuous measure of low food access. | Outcome Variable |
+| poverty_rate (PovertyRate) | Percentage of the population living below the federal poverty line within the census tract. | Predictor Variable |
+| median_income (MedianFamilyIncome) | Median family income within the census tract, representing the midpoint of the income distribution. | Predictor Variable |
+| urban (Urban) | Indicates whether the census tract is classified as urban (1) or rural (0). | Predictor Variable |
+| low_vehicle_access (HUNVFlag) | Indicates low vehicle access, identifying tracts where many households do not have access to a vehicle and may face transportation barriers to reaching supermarkets. | Predictor Variable |
+| snap_low_access_share (lasnap1share) | Share of housing units receiving SNAP benefits that are located more than one mile from a supermarket. | Predictor Variable |
+| child_low_access_share (lakids1share) | Share of the tract population that consists of children (ages 0–17) living more than one mile from a supermarket. | Predictor Variable |
+| senior_low_access_share (laseniors1share) | Share of the tract population that consists of seniors (age 65 and older) living more than one mile from a supermarket. | Predictor Variable |
+| low_income_low_access_share (lalowi1share) | Share of the tract population that is both low income and living more than one mile from a supermarket. | Predictor Variable 
+
+## Purpose of this file:
+
+This file uses the processed USDA Food Access Research Atlas dataset created during the data ingestion and cleaning phase. In this file, I conduct exploratory data analysis (EDA) to examine the distributions and relationships among the variables of interest. Visualizations and summary statistics are used to identify patterns in food access and community vulnerability characteristics. 
+
+## Load Libraries
+
+```{r}
+
+# Load required libraries for data wrangling, visualization, and exploratory analysis
+
+library(tidyverse)
+library(RColorBrewer)
+library(corrplot)
+library(scales)
+
+setwd("C:/Users/cathe/OneDrive/Desktop/Montgomery College Transition/2025-2026 MONTGOMERY COLLEGE TRANSITION/MC COURSES 25-26/Summer 2026/SCIR 297/Final Project")
+
+```
+
+## Load Data Set
+
+```{r}
+food_data_processed <- read_csv("FoodAccessResearchAtlasData2019_processed.csv")
+
+head(food_data_processed)
+dim(food_data_processed)
+names(food_data_processed)
+glimpse(food_data_processed)
+
+# Convert variables to appropriate data types
+food_data <- food_data_processed |>
+  mutate(
+    urban = as.factor(urban),
+    low_vehicle_access = as.factor(low_vehicle_access),
+
+    poverty_rate = as.numeric(poverty_rate),
+    median_income = as.numeric(median_income),
+    low_access_share = as.numeric(low_access_share),
+    snap_low_access_share = as.numeric(snap_low_access_share),
+    child_low_access_share = as.numeric(child_low_access_share),
+    senior_low_access_share = as.numeric(senior_low_access_share),
+    low_income_low_access_share = as.numeric(low_income_low_access_share)
+  )
+
+# Verify the data types
+glimpse(food_data)
+summary(food_data)
+
+```
+
+# Exploratory Data Analysis
+
+#### Histogram: Low Food Access Share
+
+```{r}
+# Create a histogram to examine the distribution of low food access
+
+ggplot(food_data, aes(x = low_access_share)) +
+  geom_histogram(
+    fill = brewer.pal(5, "Pastel1")[2],
+    color = "black",
+    bins = 30
+  ) +
+  labs(
+    title = "Distribution of Low Food Access Across Census Tracts",
+    x = "Percentage of Population with Low Food Access",
+    y = "Count",
+    caption = "Low food access represents the percentage of residents living more than one mile from a supermarket."
+  ) +
+  theme_minimal()
+```
+*The distribution of low food access is not normally distributed and appears U-shaped, with many census tracts concentrated either near 0% or 100%. This suggests that communities tend to experience either very low or very high levels of food access, with fewer census tracts exhibiting moderate levels of access.*
+
+#### Histogram: Poverty Rate
+
+```{r}
+# Create a histogram to examine poverty rates
+
+ggplot(food_data, aes(x = poverty_rate)) +
+  geom_histogram(
+    fill = brewer.pal(5, "Pastel1")[3],
+    color = "black",
+    bins = 30
+  ) +
+  labs(
+    title = "Distribution of Poverty Rate Across Census Tracts",
+    x = "Poverty Rate (%)",
+    y = "Count",
+    caption = "Poverty rate represents the percentage of individuals living below the federal poverty line."
+  ) +
+  theme_minimal()
+```
+*The distribution of poverty rates is right skewed, suggesting that most census tracts experience low poverty rates while a smaller number have much higher rates. Most observations are concentrated between approximately 5% and 20% poverty. The frequency decreases as poverty rates increase. The long right tail reflects the presence of census tracts experiencing substantially higher levels of poverty than the majority of communities.*
+
+#### Histogram: Median Family Income
+
+```{r}
+# Create a histogram to examine median family income
+
+ggplot(food_data, aes(x = median_income)) +
+  geom_histogram(
+    fill = brewer.pal(5, "Pastel1")[4],
+    color = "black",
+    bins = 30
+  ) +
+  labs(
+    title = "Distribution of Median Family Income",
+    x = "Median Income (USD)",
+    y = "Count",
+    caption = "Median income represents the midpoint of household income distribution within each census tract."
+  ) +
+  theme_minimal()
+```
+*The distribution of median family income is slightly right-skewed, suggesting that most census tracts have moderate income levels while few have very high median incomes. Most observations fall between approximately $40,000 and $100,000, with a long right tail extending beyond $200,000. This suggests considerable variation in income across U.S. census tracts, with a small number of communities reporting higher incomes.*
+
+#### Bar Chart: Urban vs. Rural
+
+```{r}
+# Create a bar chart to examine urban and rural census tracts 
+ggplot(food_data, aes(x = urban, fill = urban)) + 
+  geom_bar() + 
+  scale_x_discrete( 
+    labels = c( 
+      "0" = "Rural",
+      "1" = "Urban" 
+      ) 
+    ) + 
+  scale_fill_brewer(palette = "Pastel2") + 
+  labs( 
+    title = "Distribution of Urban and Rural Census Tracts", 
+    x = "Urban Classification", 
+    y = "Count", 
+    caption = "Urban classification indicates whether a census tract is urban or rural."
+    ) + 
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+*The bar chart shows that most census tracts in the dataset are classified as urban, with approximately two-thirds of observations representing urban areas and one-third representing rural areas. This suggests that urban communities are more prevalent in the dataset than rural communities, reflecting the distribution of census tracts included in the analysis.*
+
+#### Bar Chart: Low Vehicle Access
+
+```{r}
+# Create a bar chart to examine low vehicle access 
+ggplot(food_data, aes(x = low_vehicle_access, fill = low_vehicle_access)) + 
+  geom_bar() + 
+  scale_x_discrete( 
+    labels = c(
+      "0" = "No Low Vehicle Access", 
+      "1" = "Low Vehicle Access" 
+      ) 
+    ) + scale_fill_brewer(palette = "Pastel2") + 
+  labs( 
+    title = "Distribution of Low Vehicle Access", 
+    x = "Vehicle Access Status", 
+    y = "Count", 
+    caption = "Low vehicle access indicates transportation barriers that may affect access to supermarkets." ) + 
+  theme_minimal() + 
+  theme(legend.position = "none")
+```
+*The bar chart indicates that most census tracts do not experience low vehicle access, while a smaller proportion are classified as having low vehicle access. Although transportation barriers are less common across the dataset, they affect a meaningful number of communities and may contribute to reduced access to supermarkets.*
+
+
+#### Histogram: SNAP Low Access Share
+
+```{r}
+ggplot(food_data, aes(x = snap_low_access_share)) + 
+  geom_histogram( 
+    fill = brewer.pal(5, "Pastel1")[2], 
+    color = "black", 
+    bins = 30 
+    ) + 
+  labs( 
+    title = "Distribution of SNAP Households with Low Food Access", 
+    x = "SNAP Low Access Share (%)", 
+    y = "Count", 
+    caption = "Represents the share of SNAP households living more than one mile from a supermarket." ) + 
+  theme_minimal()
+```
+#### Histogram: Children with Low Food Access
+
+```{r}
+# Create a histogram to examine children with low food access
+ggplot(food_data, aes(x = child_low_access_share)) + 
+  geom_histogram(
+    fill = brewer.pal(5, "Pastel1")[3],
+    color = "black", 
+    bins = 30 
+    ) + 
+  labs( 
+    title = "Distribution of Children with Low Food Access", 
+    x = "Child Low Access Share (%)", 
+    y = "Count", 
+    caption = "Child low access share represents the share of children living more than one mile from a supermarket." 
+    ) + 
+  theme_minimal()
+```
+#### Histogram: Seniors with Low Food Access
+
+```{r}
+# Create a histogram to examine seniors with low food access 
+ggplot(food_data, aes(x = senior_low_access_share)) + 
+  geom_histogram( fill = brewer.pal(5, "Pastel1")[4], 
+  color = "black", 
+  bins = 30
+  ) + 
+  labs( 
+    title = "Distribution of Seniors with Low Food Access", 
+    x = "Senior Low Access Share (%)", 
+    y = "Count", 
+    caption = "Senior low access share represents the share of seniors living more than one mile from a supermarket." 
+    ) + 
+  theme_minimal()
+```
+
+#### Histogram: Low-Income Population with Low Food Access
+
+```{r}
+# Create a histogram to examine low-income residents with low food access 
+ggplot(food_data, aes(x = low_income_low_access_share)) + 
+  geom_histogram( 
+  fill = brewer.pal(5, "Pastel1")[5], 
+  color = "black", 
+  bins = 30 
+  ) + 
+  labs( 
+  title = "Distribution of Low-Income Residents with Low Food Access",
+  x = "Low-Income Low Access Share (%)", 
+  y = "Count", 
+  caption = "This variable represents the share of low-income residents living more than one mile from a supermarket." 
+  ) + 
+  theme_minimal()
+```
+
+#### Scatterplot: Poverty Rate vs. Low Food Access
+
+```{r}
+# Create a scatterplot to examine the relationship between poverty and low food access
+
+ggplot(food_data,
+       aes(x = poverty_rate,
+           y = low_access_share)) +
+  geom_point(
+    alpha = 0.4,
+    color = brewer.pal(5, "Pastel1")[1]
+  ) +
+  geom_smooth(method = "lm", color = "black") +
+  labs(
+    title = "Poverty Rate vs Low Food Access",
+    x = "Poverty Rate (%)",
+    y = "Low Food Access (%)",
+    caption = "This plot shows the relationship between poverty and the percentage of residents with limited access to supermarkets."
+  ) +
+  theme_minimal()
+```
+
+Scatterplot: Median Income vs Low Food Access
+
+```{r}
+# Create a scatterplot to examine the relationship between income and low food access
+
+ggplot(clean_data,
+       aes(x = median_income,
+           y = low_access_share)) +
+  geom_point(
+    alpha = 0.4,
+    color = brewer.pal(5, "Pastel1")[5]
+  ) +
+  geom_smooth(method = "lm", color = "black") +
+  labs(
+    title = "Median Income vs Low Food Access",
+    x = "Median Income (USD)",
+    y = "Low Food Access (%)",
+    caption = "This plot shows how income levels relate to access to supermarkets across census tracts."
+  ) +
+  theme_minimal()
+```
+
+#### Scatterplot: SNAP Low Access Share vs Low Food Access
+
+```{r}
+# Create a scatterplot to examine SNAP low access share and low food access
+
+ggplot(clean_data,
+       aes(x = snap_low_access_share,
+           y = low_access_share)) +
+  geom_point(
+    alpha = 0.4,
+    color = brewer.pal(5, "Pastel1")[1]
+  ) +
+  geom_smooth(method = "lm", color = "black") +
+  labs(
+    title = "SNAP Low Access Share vs Low Food Access",
+    x = "SNAP Low Access Share (%)",
+    y = "Low Food Access (%)",
+    caption = "This plot shows the relationship between SNAP households with low access and overall low food access."
+  ) +
+  theme_minimal()
+```
+
+#### Scatterplot: Children with Low Food Access vs Overall Low Food Access
+
+```{r}
+# Create a scatterplot to examine children with low access and overall low food access
+ggplot(food_data, 
+       aes(x = child_low_access_share,
+           y = low_access_share)) + 
+  geom_point( alpha = 0.4, color = brewer.pal(5, "Pastel1")[3] 
+              ) + 
+  geom_smooth(method = "lm", color = "black") + 
+  labs(
+    title = "Children with Low Access vs Overall Low Food Access", 
+    x = "Child Low Access Share (%)", 
+    y = "Low Food Access (%)", 
+    caption = "This plot shows the relationship between children with low food access and overall low food access."
+    ) + 
+  theme_minimal()
+```
+
+#### Scatterplot: Seniors with Low Food Access vs Overall Low Food Access
+
+```{r}
+# Create a scatterplot to examine seniors with low access and overall low food access
+
+ggplot(food_data, 
+       aes(x = senior_low_access_share, 
+           y = low_access_share)) + 
+  geom_point( 
+    alpha = 0.4, 
+    color = brewer.pal(5, "Pastel1")[4] 
+    ) + 
+  geom_smooth(method = "lm", color = "black") + 
+  labs(
+    title = "Seniors with Low Access vs Overall Low Food Access", 
+    x = "Senior Low Access Share (%)", 
+    y = "Low Food Access (%)", 
+    caption = "This plot shows the relationship between seniors with low food access and overall low food access."
+    ) + 
+  theme_minimal()
+```
+
+#### Scatterplot: Low-Income Population with Low Food Access vs Overall Low Food Access
+
+```{r}
+# Create a scatterplot to examine low-income low access share and overall low food access
+ggplot(food_data, 
+       aes(x = low_income_low_access_share, 
+           y = low_access_share)) + 
+  geom_point( 
+    alpha = 0.4, 
+    color = brewer.pal(5, "Pastel1")[5] 
+    ) + 
+  geom_smooth(method = "lm", color = "black") + 
+  labs( 
+    title = "Low-Income Low Access Share vs Overall Low Food Access", 
+    x = "Low-Income Low Access Share (%)", 
+    y = "Low Food Access (%)", caption = "This plot shows the relationship between low-income residents with low access and overall low food access." 
+    ) + 
+  theme_minimal()
+```
+
+
+#### Boxplot: Low Food Access by Urban vs Rural Classification
+
+```{r}
+# Create a boxplot comparing low food access by urban classification
+
+ggplot(clean_data,
+       aes(x = urban,
+           y = low_access_share,
+           fill = urban)) +
+  geom_boxplot() +
+  scale_x_discrete(
+    labels = c(
+      "0" = "Rural",
+      "1" = "Urban"
+    )
+  ) +
+  scale_fill_brewer(palette = "Pastel1") +
+  labs(
+    title = "Low Food Access by Urban vs Rural Areas",
+    x = "Urban Classification",
+    y = "Low Food Access (%)",
+    caption = "This plot compares the distribution of low food access between urban and rural census tracts."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#### Boxplot: Low Food Access by Vehicle Access
+
+```{r}
+# Create a boxplot comparing low food access by vehicle access
+
+ggplot(clean_data,
+       aes(x = low_vehicle_access,
+           y = low_access_share,
+           fill = low_vehicle_access)) +
+  geom_boxplot() +
+  scale_x_discrete(
+    labels = c(
+      "0" = "No Low Vehicle Access",
+      "1" = "Low Vehicle Access"
+    )
+  ) +
+  scale_fill_brewer(palette = "Pastel1") +
+  labs(
+    title = "Low Food Access by Vehicle Access",
+    x = "Vehicle Access Status",
+    y = "Low Food Access (%)",
+    caption = "This plot compares low food access between tracts with and without low vehicle access."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
