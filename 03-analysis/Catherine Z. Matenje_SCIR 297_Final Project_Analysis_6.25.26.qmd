@@ -1,0 +1,190 @@
+---
+title: "SCIR 297_Food Access_Analysis_Final Project"
+author: "Catherine Z. Matenje"
+format: html
+editor: visual
+---
+
+## Introduction
+
+This project uses data from the USDA Food Access Research Atlas (2019) to examine food access across U.S. census tracts. The dataset provides information on food access, socioeconomic conditions, and transportation characteristics for U.S. census tracts. It includes measures of low food access, poverty, income, vehicle availability, and SNAP participation, which can be used to examine factors associated with food access across communities. For this project, variables related to food access and community vulnerability were selected for analysis.
+
+My original research interest focused on disaster food insecurity, specifically how disasters affect household food security before, during, and after disaster events. Because the disaster-specific dataset was not available in time for this project, this analysis looks at food access instead as a related measure of community vulnerability to disasters. Communities with existing barriers to food access may face greater challenges during emergencies or disasters when transportation, food supply chains, and local infrastructure are disrupted.
+
+Research Question: Which community characteristics may increase vulnerability to food access disruptions during emergencies and disasters?
+
+### Variables for Research Question
+
+| Variable | Description | Outcome/Predictor |
+|------------------------|------------------------|------------------------|
+| low_access_share (lapop1share) | Proportion of the population living more than one mile from a supermarket. This serves as a continuous measure of low food access. | Outcome Variable |
+| poverty_rate (PovertyRate) | Percentage of the population living below the federal poverty line within the census tract. | Predictor Variable |
+| median_income (MedianFamilyIncome) | Median family income within the census tract, representing the midpoint of the income distribution. | Predictor Variable |
+| urban (Urban) | Indicates whether the census tract is classified as urban (1) or rural (0). | Predictor Variable |
+| low_vehicle_access (HUNVFlag) | Indicates low vehicle access, identifying tracts where many households do not have access to a vehicle and may face transportation barriers to reaching supermarkets. | Predictor Variable |
+| snap_low_access_share (lasnap1share) | Share of housing units receiving SNAP benefits that are located more than one mile from a supermarket. | Predictor Variable |
+| child_low_access_share (lakids1share) | Share of the tract population that consists of children (ages 0–17) living more than one mile from a supermarket. | Predictor Variable |
+| senior_low_access_share (laseniors1share) | Share of the tract population that consists of seniors (age 65 and older) living more than one mile from a supermarket. | Predictor Variable |
+| low_income_low_access_share (lalowi1share) | Share of the tract population that is both low income and living more than one mile from a supermarket. | Predictor Variable |
+
+## Purpose of this file:
+
+This file uses the processed USDA Food Access Research Atlas dataset created during the data ingestion and cleaning phase. I perform multiple linear regression model to examine which community characteristics are associated with low food access across U.S. census tracts.
+
+## Load Libraries
+
+```{r}
+
+# Load required libraries for data wrangling, visualization, and exploratory analysis
+
+library(tidyverse)
+library(RColorBrewer)
+library(corrplot)
+library(scales)
+
+setwd("C:/Users/cathe/OneDrive/Desktop/Montgomery College Transition/2025-2026 MONTGOMERY COLLEGE TRANSITION/MC COURSES 25-26/Summer 2026/SCIR 297/Final Project")
+
+```
+
+## Load Data Set
+
+```{r}
+food_data_processed <- read_csv("FoodAccessResearchAtlasData2019_processed.csv")
+
+# Convert variables to appropriate data types
+food_data <- food_data_processed |>
+  mutate(
+    urban = as.factor(urban),
+    low_vehicle_access = as.factor(low_vehicle_access),
+
+    poverty_rate = as.numeric(poverty_rate),
+    median_income = as.numeric(median_income),
+    low_access_share = as.numeric(low_access_share),
+    snap_low_access_share = as.numeric(snap_low_access_share),
+    child_low_access_share = as.numeric(child_low_access_share),
+    senior_low_access_share = as.numeric(senior_low_access_share),
+    low_income_low_access_share = as.numeric(low_income_low_access_share)
+  )
+
+# Verify the data types
+glimpse(food_data)
+summary(food_data)
+```
+
+## Statistical Analysis
+
+Before running the multiple linear regression model, I created a correlation matrix to examine the relationships among the numeric variables and check for possible multicollinearity. This is important because some predictors in this analysis measure related aspects of food access and community vulnerability.
+
+### Correlation Matrix
+
+```{r}
+
+# Select numeric variables only
+
+numeric_data <- food_data |>
+  select(
+    low_access_share,
+    poverty_rate,
+    median_income,
+    snap_low_access_share,
+    child_low_access_share,
+    senior_low_access_share,
+    low_income_low_access_share
+  )
+
+# Correlation matrix
+
+cor_matrix <- cor(numeric_data)
+
+corrplot(
+  cor_matrix, 
+  method = "color",
+  col = colorRampPalette(c("lightblue", "white", "lightpink"))(200),
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.srt = 45
+)
+```
+
+The correlation matrix shows that a few of the food access variables/predictors are highly correlated with the outcome, low access share. In particular, child low access share (r = 0.92) and low income low access share (r = 0.73). SNAP low access share and low income low access share are also highly correlated with one another (r = 0.86), which suggests multicollinearity.
+
+| Variable | Simple Definition |
+|------------------|------------------------------------------------------|
+| **low_access_share** | The percentage of people in a census tract who live more than one mile from the nearest supermarket or grocery store. This is the outcome variable measuring overall low food access. |
+| **poverty_rate** | The percentage of people living below the federal poverty line in a census tract. Higher values indicate more residents experiencing poverty. |
+| **median_income** | The median household income in a census tract. Half of households earn more than this amount and half earn less. It represents the typical income in the community. |
+| **urban** | Indicates whether a census tract is classified as urban (1) or rural (0). Urban areas generally have higher population density and more developed infrastructure. |
+| **low_vehicle_access** | Indicates whether many households in the census tract have limited access to a vehicle, making it more difficult to travel to supermarkets or grocery stores. |
+| **snap_low_access_share** | The percentage of residents receiving SNAP (food assistance) benefits who also live more than one mile from a supermarket. This measures food access among SNAP recipients. |
+| **child_low_access_share** | The percentage of children (ages 0–17) who live more than one mile from a supermarket. This measures food access among children. |
+| **senior_low_access_share** | The percentage of adults age 65 and older who live more than one mile from a supermarket. This measures food access among older adults. |
+| **low_income_low_access_share** | The percentage of low-income residents who live more than one mile from a supermarket. This combines both economic disadvantage and limited geographic access to food. |
+
+I will categorize the variables into two groups as follows:
+
+| Community Characteristics | Food Access Subgroup Measures |
+|---------------------------|-------------------------------|
+| poverty_rate              | snap_low_access_share         |
+| median_income             | child_low_access_share        |
+| urban                     | senior_low_access_share       |
+| low_vehicle_access        | low_income_low_access_share   |
+
+Community Characteristics are factors that decribe the socioeconomic and structural features of the census tract, such as poverty rate, median_income, urban and low_vehicle_access
+
+Food access subgroups are the proportion of specific populations (e.g., children, seniors, SNAP recipients, and low-income residents) who experience limited access to supermarkets.
+
+I decided to run a multiple linear regression with all predictors to check the coefficients:
+
+### Multiple Linear Regression
+
+```{r}
+# Run full multiple linear regression model
+
+model1 <- lm(
+  low_access_share ~ poverty_rate +
+    median_income +
+    urban +
+    low_vehicle_access +
+    snap_low_access_share +
+    child_low_access_share +
+    senior_low_access_share +
+    low_income_low_access_share,
+  data = food_data
+)
+
+# View model summary
+summary(model1)
+```
+
+### Interpretation of Regression Results
+
+#### Intercept (β = 6.33): 
+When all predictor variables are equal to zero, the predicted low food access is 6.33%.
+
+#### Poverty Rate (β = -0.137): 
+Holding all other variables constant, a one percentage point increase in poverty rate is associated with a 0.14 percentage point decrease in low food access.
+
+####: Median Income (β = 0.0000237)
+Holding all other variables constant, a \$10,000 increase in median income is associated with approximately a 0.24 percentage point increase in low food access.
+
+#### Urban (β = -3.24)
+Holding all other variables constant, urban census tracts have approximately 3.24 percentage points lower low food access than rural census tracts.
+
+#### Low Vehicle Access (β = -0.30)
+Holding all other variables constant, census tracts with low vehicle access have approximately 0.30 percentage points lower low food access than census tracts without low vehicle access.
+
+#### SNAP Low Access Share (β = -0.212)
+Holding all other variables constant, a one percentage point increase in SNAP low access share is associated with a 0.21 percentage point decrease in overall low food access.
+
+#### Child Low Access Share (β = 2.52)
+Holding all other variables constant, a one percentage point increase in child low food access is associated with approximately a 2.52 percentage point increase in overall low food access.
+
+#### Senior Low Access Share (β = 1.64)
+Holding all other variables constant, a one percentage point increase in senior low food access is associated with approximately a 1.64 percentage point increase in overall low food access.
+
+#### Low Income Low Access Share (β = 0.37)
+Holding all other variables constant, a one percentage point increase in low-income low food access is associated with approximately a 0.37 percentage point increase in overall low food access.
+
+Although the model has an adjusted R-squared of 0.954, which indicates an almost perfect fit, many of the coefficient directions are odd (for example, poverty rate, median income, SNAP low access share, and low vehicle access). This suggests that multicollinearity may be affecting the model because a few predictors measure concepts that are very similar to the outcome variable.
+
+#### I will discuss next steps with Professor Alraee
